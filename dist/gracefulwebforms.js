@@ -20,15 +20,21 @@
           onfocusout: false,
 
           errorPlacement: function (error, element) {
-            const describedById = element.attr("id") + "-error";
-            error.attr("id", describedById);
-            error.attr("role", "alert");
-            error.attr("aria-live", "polite");
-            error.insertAfter(element);
+			  const fieldId = element.attr("id");
+			  const label = $("label[for='" + fieldId + "']").text().trim();
+			  const message = "Error: " + label + " is required.";
+			
+			  error.text(message);
+			  error.attr("id", fieldId + "-error");
+			  error.attr("role", "alert");
+			  error.attr("aria-live", "polite");
+			
+			  element.attr("aria-describedby", fieldId + "-error");
+			  element.attr("aria-invalid", "true");
+			
+			  error.insertAfter(element);
+			}
 
-            element.attr("aria-describedby", describedById);
-            element.attr("aria-invalid", "true");
-          },
 
           success: function (label, element) {
             $(element).removeAttr("aria-invalid");
