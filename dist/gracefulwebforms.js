@@ -1,13 +1,14 @@
-// GracefulWebForms.js
 (function ($) {
   const GracefulWebForms = {
     init: function () {
-      if (typeof $.fn.validate !== "function") {
-        console.error("jQuery Validation Plugin is not loaded.");
+      if (!$.fn.validate) {
+        console.error("GracefulWebForms.js: jQuery Validation Plugin is not loaded.");
         return;
       }
 
       const forms = $("form[data-graceful-web-form]");
+      console.log("[Graceful] Initializing on forms:", forms.length);
+
       forms.each(function () {
         const $form = $(this);
 
@@ -47,6 +48,17 @@
     },
   };
 
-  // Expose globally
+  // Wait until jQuery Validation is actually available
+  function waitForValidator() {
+    if ($.fn.validate) {
+      GracefulWebForms.init();
+    } else {
+      console.log("[Graceful] Waiting for jQuery Validation Plugin...");
+      setTimeout(waitForValidator, 100);
+    }
+  }
+
+  waitForValidator();
+
   window.GracefulWebForms = GracefulWebForms;
 })(jQuery);
