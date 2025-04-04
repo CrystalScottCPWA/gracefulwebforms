@@ -2,14 +2,17 @@
 (function ($) {
   const GracefulWebForms = {
     init: function () {
-      const forms = $("form[data-graceful-web-form]");
+      if (typeof $.fn.validate !== "function") {
+        console.error("jQuery Validation Plugin is not loaded.");
+        return;
+      }
 
+      const forms = $("form[data-graceful-web-form]");
       forms.each(function () {
         const $form = $(this);
 
-        // Setup validation
         $form.validate({
-          errorClass: "gwf-error", // Custom error class
+          errorClass: "gwf-error",
           errorElement: "div",
           onkeyup: false,
           onclick: false,
