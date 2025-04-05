@@ -6,14 +6,36 @@
         return;
       }
 
-      const forms = $("form[data-graceful-web-form]");
-      console.log("[Graceful] Initializing on forms:", forms.length);
+      // GLOBAL: Custom default required message using <label> or <legend>
+      $.validator.defaults.messages.required = function (_, element) {
+        const $element = $(element);
+        const id = $element.attr("id");
+        const type = $element.attr("type");
+        let label = "";
 
-      // Add custom validator for checkbox/radio group
+        if (type === "checkbox" || type === "radio") {
+          const legend = $element.closest("fieldset").find("legend").first();
+          if (legend.length) {
+            label = legend.text().trim();
+          }
+        } else {
+          const labelEl = $("label[for='" + id + "']");
+          if (labelEl.length) {
+            label = labelEl.text().trim();
+          }
+        }
+
+        return label ? `Error: ${label} is required.` : "This field is required.";
+      };
+
+      // Custom rule: require at least one checkbox/radio in a group
       $.validator.addMethod("requireFromGroup", function (value, element) {
         const $group = $(element).closest("fieldset").find("input[name='" + element.name + "']");
         return $group.filter(":checked").length > 0;
-      }, "Please select at least one option.");
+      }, $.validator.defaults.messages.required);
+
+      const forms = $("form[data-graceful-web-form]");
+      console.log("[Graceful] Initializing on forms:", forms.length);
 
       forms.each(function () {
         const $form = $(this);
@@ -25,48 +47,12 @@
           onclick: false,
           onfocusout: false,
 
-          showErrors: function (errorMap, errorList) {
-            this.defaultShowErrors();
-
-            for (let i = 0; i < errorList.length; i++) {
-              const element = errorList[i].element;
-              const $element = $(element);
-              const id = $element.attr("id");
-              const type = $element.attr("type");
-
-              let label = "";
-
-              if (type === "checkbox" || type === "radio") {
-                const legend = $element.closest("fieldset").find("legend").first();
-                label = legend.text().trim();
-              } else {
-                label = $("label[for='" + id + "']").text().trim();
-              }
-
-              if (
-                errorList[i].message === "This field is required." ||
-                errorList[i].message === "Please fill out this field." ||
-                !errorList[i].message
-              ) {
-                errorList[i].message = `Error: ${label} is required.`;
-              }
-
-              const errorContainer = $("#" + id + "-error");
-              if (
-                errorContainer.length &&
-                errorContainer.find("span[aria-hidden='true']").length === 0
-              ) {
-                const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
-                errorContainer.prepend(icon);
-              }
-            }
-          },
-
           errorPlacement: function (error, element) {
             const type = element.attr("type");
             const fieldId = element.attr("id");
             const describedById = fieldId + "-error";
 
+            // Add icon if not present
             const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
             error.prepend(icon);
 
@@ -77,10 +63,8 @@
               const fieldset = element.closest("fieldset");
               const legend = fieldset.find("legend").first();
               const legendId = legend.attr("id") || fieldId + "-legend";
-
               if (!legend.attr("id")) legend.attr("id", legendId);
               fieldset.find("input").attr("aria-describedby", describedById);
-
               error.insertAfter(legend);
             } else {
               element.attr("aria-describedby", describedById);
@@ -108,7 +92,7 @@
           },
         });
 
-        // Auto-apply group validation rule to all required radios/checkboxes
+        // Automatically add group validation to all required radio/checkboxes
         $form.find("input[type='radio'][required], input[type='checkbox'][required]").each(function () {
           $(this).rules("add", {
             requireFromGroup: true
@@ -118,6 +102,7 @@
     },
   };
 
+  // Delay init if plugin not loaded yet
   function waitForValidator() {
     if ($.fn.validate) {
       GracefulWebForms.init();
