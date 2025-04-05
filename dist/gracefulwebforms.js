@@ -19,21 +19,42 @@
           onclick: false,
           onfocusout: false,
 
+          showErrors: function (errorMap, errorList) {
+            // Customize all required messages with label text
+            for (let i = 0; i < errorList.length; i++) {
+              const element = errorList[i].element;
+              const $element = $(element);
+              const id = $element.attr("id");
+
+              // Get label text
+              const label = $("label[for='" + id + "']").text().trim();
+
+              // Only override if it's the generic message
+              if (
+                errorList[i].message === "This field is required." ||
+                errorList[i].message === "Please fill out this field."
+              ) {
+                errorList[i].message = `Error: ${label} is required.`;
+              }
+            }
+
+            // Now call the default handler
+            this.defaultShowErrors();
+          },
+
           errorPlacement: function (error, element) {
             const fieldId = element.attr("id");
-            const label = $("label[for='" + fieldId + "']").text().trim();
-            const message = "Error: " + label + " is required.";
+            const describedById = fieldId + "-error";
 
-            error.text(message);
-            error.attr("id", fieldId + "-error");
+            error.attr("id", describedById);
             error.attr("role", "alert");
             error.attr("aria-live", "polite");
 
-            element.attr("aria-describedby", fieldId + "-error");
+            element.attr("aria-describedby", describedById);
             element.attr("aria-invalid", "true");
 
             error.insertAfter(element);
-          }, 
+          },
 
           success: function (label, element) {
             $(element).removeAttr("aria-invalid");
