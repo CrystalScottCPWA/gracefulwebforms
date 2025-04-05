@@ -9,6 +9,12 @@
       const forms = $("form[data-graceful-web-form]");
       console.log("[Graceful] Initializing on forms:", forms.length);
 
+      // Add custom validator for checkbox/radio group
+      $.validator.addMethod("requireFromGroup", function (value, element) {
+        const $group = $(element).closest("fieldset").find("input[name='" + element.name + "']");
+        return $group.filter(":checked").length > 0;
+      }, "Please select at least one option.");
+
       forms.each(function () {
         const $form = $(this);
 
@@ -20,36 +26,44 @@
           onfocusout: false,
 
           showErrors: function (errorMap, errorList) {
-			  // First let the plugin render its DOM
-			  this.defaultShowErrors();
-			
-			  // Now we can safely inject icons into the rendered errors
-			  for (let i = 0; i < errorList.length; i++) {
-			    const element = errorList[i].element;
-			    const $element = $(element);
-			    const id = $element.attr("id");
-			    const label = $("label[for='" + id + "']").text().trim();
-			
-			    if (
-			      errorList[i].message === "This field is required." ||
-			      errorList[i].message === "Please fill out this field."
-			    ) {
-			      $element.siblings(`#${id}-error`).text(`Error: ${label} is required.`);
-			    }
-			
-			    const errorContainer = $("#" + id + "-error");
-			    if (
-			      errorContainer.length &&
-			      errorContainer.find("span[aria-hidden='true']").length === 0
-			    ) {
-			      const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
-			      errorContainer.prepend(icon);
-			    }
-			  }
-			},
+            this.defaultShowErrors();
 
+            for (let i = 0; i < errorList.length; i++) {
+              const element = errorList[i].element;
+              const $element = $(element);
+              const id = $element.attr("id");
+              const type = $element.attr("type");
+
+              let label = "";
+
+              if (type === "checkbox" || type === "radio") {
+                const legend = $element.closest("fieldset").find("legend").first();
+                label = legend.text().trim();
+              } else {
+                label = $("label[for='" + id + "']").text().trim();
+              }
+
+              if (
+                errorList[i].message === "This field is required." ||
+                errorList[i].message === "Please fill out this field." ||
+                !errorList[i].message
+              ) {
+                errorList[i].message = `Error: ${label} is required.`;
+              }
+
+              const errorContainer = $("#" + id + "-error");
+              if (
+                errorContainer.length &&
+                errorContainer.find("span[aria-hidden='true']").length === 0
+              ) {
+                const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
+                errorContainer.prepend(icon);
+              }
+            }
+          },
 
           errorPlacement: function (error, element) {
+            const type = element.attr("type");
             const fieldId = element.attr("id");
             const describedById = fieldId + "-error";
 
@@ -57,14 +71,25 @@
             error.prepend(icon);
 
             error.attr("id", describedById);
-            element.attr("aria-describedby", describedById);
             element.attr("aria-invalid", "true");
 
-            const label = $("label[for='" + fieldId + "']");
-            if (label.length) {
-              error.insertAfter(label);
+            if (type === "checkbox" || type === "radio") {
+              const fieldset = element.closest("fieldset");
+              const legend = fieldset.find("legend").first();
+              const legendId = legend.attr("id") || fieldId + "-legend";
+
+              if (!legend.attr("id")) legend.attr("id", legendId);
+              fieldset.find("input").attr("aria-describedby", describedById);
+
+              error.insertAfter(legend);
             } else {
-              error.insertAfter(element); // fallback
+              element.attr("aria-describedby", describedById);
+              const label = $("label[for='" + fieldId + "']");
+              if (label.length) {
+                error.insertAfter(label);
+              } else {
+                error.insertAfter(element);
+              }
             }
           },
 
@@ -81,6 +106,13 @@
               firstInvalid.focus();
             }
           },
+        });
+
+        // Auto-apply group validation rule to all required radios/checkboxes
+        $form.find("input[type='radio'][required], input[type='checkbox'][required]").each(function () {
+          $(this).rules("add", {
+            requireFromGroup: true
+          });
         });
       });
     },
