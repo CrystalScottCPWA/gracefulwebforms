@@ -20,22 +20,32 @@
           onfocusout: false,
 
           showErrors: function (errorMap, errorList) {
-            for (let i = 0; i < errorList.length; i++) {
-              const element = errorList[i].element;
-              const $element = $(element);
-              const id = $element.attr("id");
-              const label = $("label[for='" + id + "']").text().trim();
+			  for (let i = 0; i < errorList.length; i++) {
+			    const element = errorList[i].element;
+			    const $element = $(element);
+			    const id = $element.attr("id");
+			    const label = $("label[for='" + id + "']").text().trim();
+			
+			    // Customize the message
+			    if (
+			      errorList[i].message === "This field is required." ||
+			      errorList[i].message === "Please fill out this field."
+			    ) {
+			      errorList[i].message = `Error: ${label} is required.`;
+			    }
+			
+			    // Inject icon into existing error message if missing
+			    const errorContainer = $("#" + id + "-error");
+			    if (errorContainer.length && errorContainer.find("span[aria-hidden='true']").length === 0) {
+			      const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
+			      errorContainer.prepend(icon);
+			    }
+			  }
+			
+			  // Call the default rendering
+			  this.defaultShowErrors();
+			},
 
-              if (
-                errorList[i].message === "This field is required." ||
-                errorList[i].message === "Please fill out this field."
-              ) {
-                errorList[i].message = `Error: ${label} is required.`;
-              }
-            }
-
-            this.defaultShowErrors();
-          },
 
           errorPlacement: function (error, element) {
             const fieldId = element.attr("id");
