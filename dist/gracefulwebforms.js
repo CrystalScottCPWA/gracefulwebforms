@@ -6,7 +6,7 @@
         return;
       }
 
-      // ✅ Custom rule to validate at least one checked box/radio in a group
+      // Custom rule for checkbox/radio groups
       $.validator.addMethod("requireFromGroup", function (value, element) {
         const $group = $(element).closest("fieldset").find("input[name='" + element.name + "']");
         return $group.filter(":checked").length > 0;
@@ -24,6 +24,39 @@
           onkeyup: false,
           onclick: false,
           onfocusout: false,
+
+          // ✅ Intercept error reuse and fix the text/icon
+          showErrors: function (errorMap, errorList) {
+            this.defaultShowErrors();
+
+            for (let i = 0; i < errorList.length; i++) {
+              const element = errorList[i].element;
+              const $element = $(element);
+              const fieldId = $element.attr("id");
+              const type = $element.attr("type");
+              let labelText = "";
+
+              if (type === "checkbox" || type === "radio") {
+                const legend = $element.closest("fieldset").find("legend").first();
+                if (legend.length) {
+                  labelText = legend.text().trim();
+                }
+              } else {
+                const label = $("label[for='" + fieldId + "']");
+                if (label.length) {
+                  labelText = label.text().trim();
+                }
+              }
+
+              if (labelText) {
+                const errorId = fieldId + "-error";
+                const $error = $("#" + errorId);
+                if ($error.length) {
+                  $error.html(`<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>Error: ${labelText} is required.`);
+                }
+              }
+            }
+          },
 
           errorPlacement: function (error, element) {
             const fieldId = element.attr("id");
@@ -48,7 +81,6 @@
               error.text(`Error: ${labelText} is required.`);
             }
 
-            // Add ⚠️ icon visually
             const icon = $('<span aria-hidden="true" style="margin-right: 0.4rem;">⚠️</span>');
             error.prepend(icon);
 
@@ -89,12 +121,12 @@
           },
         });
 
-        // ✅ Automatically add the requireFromGroup rule to radios/checkboxes
+        // ✅ Automatically attach group validation with null message override
         $form.find("input[type='radio'][required], input[type='checkbox'][required]").each(function () {
           $(this).rules("add", {
             requireFromGroup: true,
             messages: {
-              requireFromGroup: undefined // ensures custom message via errorPlacement
+              requireFromGroup: undefined
             }
           });
         });
